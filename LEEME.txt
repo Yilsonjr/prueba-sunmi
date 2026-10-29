@@ -1,0 +1,20 @@
+PRUEBA SUNMI (desechable, no es el sistema de Bhonacao)
+
+Necesitas: Node 20+, Android Studio (con SDK), y el Sunmi con "Depuración USB" activada
+(Ajustes > Acerca > toca 7 veces "Número de compilación" > Opciones de desarrollador).
+
+1) npm install
+2) npx cap add android
+3) npx cap sync
+4) npx cap open android      (abre Android Studio; espera que termine Gradle)
+5) Con el Sunmi conectado por USB, pulsa Run (triangulo verde) y elige el Sunmi.
+   Alternativa: Build > Build APK(s), y copiar el .apk al Sunmi.
+
+Si el plugin falla al compilar, copia el error completo y me lo pasas.
+
+--- SIN ANDROID STUDIO (GitHub Actions) ---
+1) Crea un repositorio nuevo en GitHub y sube TODO el contenido de esta carpeta
+   (incluida la carpeta oculta .github).
+2) Pestaña Actions > "Compilar APK de prueba" > Run workflow (o se ejecuta solo al subir).
+3) Cuando termine (unos 5-10 min), entra a la ejecución y descarga el artefacto "prueba-sunmi-apk".
+4) Descomprime, copia app-debug.apk al Sunmi e instálalo.

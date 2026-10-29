@@ -1,0 +1,8 @@
+{
+  "appId": "com.prueba.sunmi",
+  "appName": "Prueba Sunmi",
+  "webDir": "www",
+  "plugins": {
+    "SunmiPrinter": { "bindOnLoad": true }
+  }
+}

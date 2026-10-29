@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prueba Sunmi</title>
+<style>
+body{font-family:system-ui,sans-serif;margin:0;padding:12px;background:#f5f3f1;color:#25180f}
+h1{font-size:18px;margin:0 0 10px}
+button{display:block;width:100%;margin:6px 0;padding:12px;font-size:15px;border:0;border-radius:8px;background:#a96a06;color:#fff;font-weight:600}
+button.sec{background:#2c1810}
+#log{background:#fff;border:1px solid #ddd5ce;border-radius:8px;padding:8px;font:12px/1.4 ui-monospace,monospace;white-space:pre-wrap;max-height:42vh;overflow:auto}
+.row{font-size:13px;margin:6px 0}
+</style></head><body>
+<h1>Prueba de impresión Sunmi</h1>
+<div class="row" id="estado"></div>
+<button id="b-info">1. Leer datos del equipo</button>
+<button id="b-print">2. Imprimir ticket de prueba</button>
+<button id="b-20">3. Imprimir 20 tickets seguidos</button>
+<button class="sec" id="b-cola">4. Guardar compra de prueba (cola local)</button>
+<button class="sec" id="b-ver">5. Ver cola local</button>
+<div id="log"></div>
+<script>
+(function(){
+  var logEl=document.getElementById('log');
+  function log(m){logEl.textContent+=m+'\n';logEl.scrollTop=logEl.scrollHeight}
+  function err(e){return (e&&e.message)?e.message:JSON.stringify(e)}
+  var SP=(window.Capacitor&&Capacitor.registerPlugin)?Capacitor.registerPlugin('SunmiPrinter'):null;
+  if(!SP) log('ADVERTENCIA: no se encontró Capacitor. ¿Estás en el navegador y no en la app?');
+  function estado(){document.getElementById('estado').textContent='Conexión: '+(navigator.onLine?'CON internet':'SIN internet')}
+  window.addEventListener('online',estado);window.addEventListener('offline',estado);estado();
+  function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+
+  // ---- IndexedDB (mismo mecanismo que usará Dexie) ----
+  function openDb(){return new Promise(function(res,rej){
+    var r=indexedDB.open('prueba-sunmi',1);
+    r.onupgradeneeded=function(){r.result.createObjectStore('cola',{keyPath:'id'})};
+    r.onsuccess=function(){res(r.result)};r.onerror=function(){rej(r.error)}})}
+  function uuid(){return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():'id-'+Date.now()+'-'+Math.random().toString(16).slice(2)}
+  async function guardar(){
+    var db=await openDb();
+    await new Promise(function(res,rej){var t=db.transaction('cola','readwrite');t.objectStore('cola').put({id:uuid(),at:new Date().toISOString(),kg:100,sync:false});t.oncomplete=res;t.onerror=function(){rej(t.error)}});
+    log('Compra guardada en la cola local.');
+  }
+  async function ver(){
+    var db=await openDb();
+    var todos=await new Promise(function(res,rej){var q=db.transaction('cola').objectStore('cola').getAll();q.onsuccess=function(){res(q.result)};q.onerror=function(){rej(q.error)}});
+    log('Cola local: '+todos.length+' compras guardadas.');
+    todos.slice(-5).forEach(function(c){log('  '+c.at+'  '+c.id.slice(0,8))});
+  }
+  (async function(){try{
+    var p=(navigator.storage&&navigator.storage.persist)?await navigator.storage.persist():'no disponible';
+    log('Almacenamiento persistente: '+p);await ver();}catch(e){log('Error de almacenamiento: '+err(e))}})();
+
+  // ---- Impresión ----
+  async function info(){
+    if(!SP)return;
+    var c=[['getPrinterModel'],['getServiceVersion'],['getPrinterVersion'],['getServiceStatus'],['updatePrinterState']];
+    for(var i=0;i<c.length;i++){try{var r=await SP[c[i][0]]();log(c[i][0]+': '+JSON.stringify(r))}catch(e){log(c[i][0]+' ERROR: '+err(e))}}
+  }
+  async function imprimirTicket(n){
+    await SP.printerInit();
+    await SP.setAlignment({alignment:'center'});
+    await SP.setBold({enable:true});
+    await SP.printText({text:'BHONACAO\n'});
+    await SP.setBold({enable:false});
+    await SP.printText({text:'AGRO-COMERCIAL S.R.L.\nTicket de prueba #'+n+'\n'});
+    await SP.setAlignment({alignment:'left'});
+    await SP.printText({text:'--------------------------------\n'});
+    await SP.printText({text:'Agricultor: Ana Luisa Féliz\n'});
+    await SP.printText({text:'Pérez Núñez, José Ángel de la Concepción\n'});
+    await SP.printText({text:'Tipo: Seco   Cantidad: 100.0 kg\n'});
+    await SP.printText({text:'Regla: 123456789012345678901234567890123456789012345678\n'});
+    await SP.printColumnsString({lines:[
+      {text:'Seco',proportion:2,align:'left'},
+      {text:'100 kg',proportion:1,align:'right'},
+      {text:'28,500.00',proportion:2,align:'right'}]});
+    await SP.printText({text:'--------------------------------\n'});
+    await SP.setBold({enable:true});
+    await SP.printText({text:'TOTAL RD$ 28,500.00\n'});
+    await SP.setBold({enable:false});
+    await SP.printText({text:'Ticket interno. No es comprobante fiscal.\n\n\n'});
+    await SP.printText({text:'________________________\nFirma del agricultor\n'});
+    await SP.lineWrap({lines:3});
+  }
+  async function uno(){
+    if(!SP)return;
+    try{await imprimirTicket(1);log('Ticket enviado a la impresora.')}catch(e){log('ERROR al imprimir: '+err(e))}
+  }
+  async function veinte(){
+    if(!SP)return;
+    var ok=0,mal=0;
+    for(var i=1;i<=20;i++){
+      try{await imprimirTicket(i);ok++}catch(e){mal++;log('Ticket '+i+' ERROR: '+err(e))}
+      await sleep(400);
+    }
+    log('Terminado: '+ok+' enviados, '+mal+' con error.');
+  }
+  document.getElementById('b-info').onclick=info;
+  document.getElementById('b-print').onclick=uno;
+  document.getElementById('b-20').onclick=veinte;
+  document.getElementById('b-cola').onclick=function(){guardar().then(ver).catch(function(e){log('ERROR: '+err(e))})};
+  document.getElementById('b-ver').onclick=function(){ver().catch(function(e){log('ERROR: '+err(e))})};
+})();
+</script></body></html>
