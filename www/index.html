@@ -36,9 +36,19 @@ button.sec{background:#2c1810}
       log('Capacitor.isNativePlatform: '+Capacitor.isNativePlatform());
       log('Capacitor.getPlatform: '+Capacitor.getPlatform());
     }
-    if(window.Capacitor&&Capacitor.registerPlugin){
-      SP=Capacitor.registerPlugin('SunmiPrinter');
-      log('Plugin SunmiPrinter registrado OK.');
+    if(window.Capacitor){
+      try{
+        SP=Capacitor.registerPlugin('SunmiPrinter');
+        log('Plugin SunmiPrinter registrado OK.');
+      }catch(e){
+        log('registerPlugin ERROR: '+e.message);
+        // Intento alternativo
+        try{
+          SP=window.Capacitor.Plugins&&window.Capacitor.Plugins.SunmiPrinter;
+          if(SP) log('Plugin via Capacitor.Plugins OK.');
+          else log('Plugin no encontrado en Capacitor.Plugins.');
+        }catch(e2){log('Plugins fallback ERROR: '+e2.message);}
+      }
     } else {
       log('Capacitor no disponible. Modo navegador.');
     }
