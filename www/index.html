@@ -23,8 +23,21 @@ button.sec{background:#2c1810}
   var logEl=document.getElementById('log');
   function log(m){logEl.textContent+=m+'\n';logEl.scrollTop=logEl.scrollHeight}
   function err(e){return (e&&e.message)?e.message:JSON.stringify(e)}
-  var SP=(window.Capacitor&&Capacitor.registerPlugin)?Capacitor.registerPlugin('SunmiPrinter'):null;
-  if(!SP) log('ADVERTENCIA: no se encontró Capacitor. ¿Estás en el navegador y no en la app?');
+  var SP=null;
+  function initCapacitor(){
+    if(window.Capacitor&&Capacitor.registerPlugin){
+      SP=Capacitor.registerPlugin('SunmiPrinter');
+      log('Capacitor OK. Plugin registrado.');
+    } else {
+      log('ADVERTENCIA: no se encontró Capacitor. ¿Estás en el navegador y no en la app?');
+    }
+  }
+  // Esperar a que Capacitor inicialice el puente nativo
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',function(){setTimeout(initCapacitor,300)});
+  } else {
+    setTimeout(initCapacitor,300);
+  }
   function estado(){document.getElementById('estado').textContent='Conexión: '+(navigator.onLine?'CON internet':'SIN internet')}
   window.addEventListener('online',estado);window.addEventListener('offline',estado);estado();
   function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
