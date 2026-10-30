@@ -24,15 +24,25 @@ button.sec{background:#2c1810}
   function log(m){logEl.textContent+=m+'\n';logEl.scrollTop=logEl.scrollHeight}
   function err(e){return (e&&e.message)?e.message:JSON.stringify(e)}
   var SP=null;
+  // Diagnóstico inmediato al cargar
+  log('--- DIAGNÓSTICO ---');
+  log('window.Capacitor: '+(typeof window.Capacitor));
+  log('window.Android: '+(typeof window.Android));
+  log('userAgent: '+navigator.userAgent.slice(0,80));
   function initCapacitor(){
+    log('--- initCapacitor (300ms) ---');
+    log('window.Capacitor: '+(typeof window.Capacitor));
+    if(window.Capacitor){
+      log('Capacitor.isNativePlatform: '+Capacitor.isNativePlatform());
+      log('Capacitor.getPlatform: '+Capacitor.getPlatform());
+    }
     if(window.Capacitor&&Capacitor.registerPlugin){
       SP=Capacitor.registerPlugin('SunmiPrinter');
-      log('Capacitor OK. Plugin registrado.');
+      log('Plugin SunmiPrinter registrado OK.');
     } else {
-      log('ADVERTENCIA: no se encontró Capacitor. ¿Estás en el navegador y no en la app?');
+      log('Capacitor no disponible. Modo navegador.');
     }
   }
-  // Esperar a que Capacitor inicialice el puente nativo
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded',function(){setTimeout(initCapacitor,300)});
   } else {
